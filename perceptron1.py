@@ -28,7 +28,7 @@ def trainer(height,width,cutoff,num):
     w0 = 1
     regions = [0.0 for _ in range(height*width)]
     data=data.read().split("\n")
-    while total==0 or bad*1.0/total>=cutoff:
+    while total==0 or (bad*1.0/total>=cutoff and passthrough<=120):
         #print("run")
         passthrough+=1
         if passthrough%15==0:
@@ -120,7 +120,7 @@ def tester(w0,ws,height,width):
     print((1-(bad*1.0/total))*100.0)
 
 def main():
-    [w0,ws,height,width] = trainer(7,6,0.3,40)
+    [w0,ws,height,width] = trainer(7,6,0.2,10)
     tester(w0,ws,height,width)
 main()
 
