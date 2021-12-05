@@ -15,6 +15,15 @@ def filecreator():
     facedata = open("finalprojectdata/facedata/facedatalabeler.txt","a")
     facedata.write(facedatatemp.read())
 
+    open("finalprojectdata/facedata/facedatatest.txt", 'w').close() 
+    facedatatemp = open("finalprojectdata/facedata/facedatatest","r")
+    facedata = open("finalprojectdata/facedata/facedatatest.txt","a")
+    facedata.write(facedatatemp.read())
+    open("finalprojectdata/facedata/facelabeltest.txt", 'w').close() 
+    facedatatemp = open("finalprojectdata/facedata/facedatatestlabels","r")
+    facedata = open("finalprojectdata/facedata/facelabeltest.txt","a")
+    facedata.write(facedatatemp.read())
+
 def trainer(height,width,cutoff,num):
     filecreator()
     bad = 0
@@ -82,14 +91,7 @@ def trainer(height,width,cutoff,num):
     print("hi")  
     return w0,ws,height,width
 def tester(w0,ws,height,width):
-    # open("finalprojectdata/facedata/facedatatest.txt", 'w').close() 
-    # facedatatemp = open("finalprojectdata/facedata/facedatatest","r")
-    # facedata = open("finalprojectdata/facedata/facedatatest.txt","a")
-    # facedata.write(facedatatemp.read())
-    # open("finalprojectdata/facedata/facelabeltest.txt", 'w').close() 
-    # facedatatemp = open("finalprojectdata/facedata/facedatatestlabels","r")
-    # facedata = open("finalprojectdata/facedata/facelabeltest.txt","a")
-    # facedata.write(facedatatemp.read())
+    
     data = open("finalprojectdata/facedata/facedatatest.txt","r")
     label = open("finalprojectdata/facedata/facelabeltest.txt","r")
     
