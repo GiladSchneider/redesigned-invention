@@ -57,7 +57,7 @@ def trainer(height,width,cutoff,n):
                 a =int(label[labelindex])
                 # regions /= 4200
                 # regions *= (5*width)
-                regions[:] = [(x*height*width) /700 for x in regions]      
+                regions[:] = [(x*height*width) /784 for x in regions]      
                 num =0      
                 ans = [-1, -5.0]  
                 for wn in ws:
