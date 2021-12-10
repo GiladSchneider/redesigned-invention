@@ -1,13 +1,8 @@
 import torch
 from torch import nn, optim
-from torchvision import transforms as T
 import matplotlib.pyplot as plt
-
-def digit_print(images, n = 1):
-    for j in range(n):
-        for i in range(28):
-            print(f'{images[j][i*28 : i*28 + 27]}')
-        print()
+import numpy as np
+from time import time
 
 def filecreator():
     open("finalprojectdata/digitdata/digitdatatrainer.txt", 'w').close()
@@ -38,9 +33,6 @@ def filecreator():
 
 
 def model_driver(percent = 10, epochs = 15):
-    # Create the txt files from the excutable
-    filecreator()
-    
     # Prepare the training images and labels to be input to the model
     train_labels_file = open('finalprojectdata/digitdata/digitdatalabeler.txt', 'r')
     train_labels = train_labels_file.read().split('\n')
@@ -52,7 +44,12 @@ def model_driver(percent = 10, epochs = 15):
     train_images_file.close()
     train_images = []
 
-    for j in range(len(train_temp_images)//28):       # For every potential image in your dataset
+    quantity_of_images = ((len(train_temp_images)//28)*percent)//100
+    indeces = list(range(len(train_temp_images)//28))
+    np.random.shuffle(indeces)
+    indeces = indeces[:quantity_of_images]
+
+    for j in indeces:       # For every potential image in your dataset
         image = ''
         for i in range(28):                           # For every line in that image
             line = train_temp_images[j*28 + i]        # Choose a Line in the image
@@ -66,6 +63,8 @@ def model_driver(percent = 10, epochs = 15):
         train_images.append(image)
 
     train_images = torch.Tensor([[int(char) for char in image] for image in train_images])
+    
+    train_labels = [train_labels[i] for i in indeces]
     train_labels = torch.LongTensor([int(char) for char in train_labels])
 
     # prepare the testing images and data to be input to the model
@@ -94,26 +93,17 @@ def model_driver(percent = 10, epochs = 15):
 
     test_images = torch.Tensor([[int(char) for char in image] for image in train_images])
     test_labels = torch.LongTensor([int(char) for char in train_labels])
-    
-    quantity_of_images = (len(train_labels)*percent)//100
-    train_images = train_images[:quantity_of_images]
-    train_labels = train_labels[:quantity_of_images]
 
-    train_labels = train_labels
     model = nn.Sequential(
-        nn.Linear(784, 512),
+        nn.Linear(784, 100),
         nn.ReLU(),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Linear(128, 64),
-        nn.ReLU(),
-        nn.Linear(64, 10),
+        nn.Linear(100, 10),
         nn.LogSoftmax(dim = 1))
 
     criterion = nn.NLLLoss()
     optimizer = optim.Adam(model.parameters(), lr = 0.0003)
+
+    start = time()
 
     losses = []
     for epoch in range(epochs):
@@ -133,25 +123,58 @@ def model_driver(percent = 10, epochs = 15):
     # plt.clf()
 
     # Texting the model using the testing data
-    correct = 0
-    out = model.forward(test_images)
-    pred = torch.argmax(torch.exp(out), dim=1)
-    equals = pred == test_labels
-    accuracy = torch.mean(equals.type(torch.FloatTensor))
+    with torch.no_grad():
+        correct = 0
+        out = model.forward(test_images)
+        pred = torch.argmax(torch.exp(out), dim=1)
+        equals = pred == test_labels
     
-    print(f'{percent}% model Accuracy: {accuracy.item()*100}')
-    return accuracy
+        total = 0
+        correct  = 0
+        for i in equals:
+            if i:
+                correct += 1
+            total += 1
+        accuracy = correct/total
+
+    end = time()
+    e_time = end - start
+    print(f'{percent}% model Accuracy: {accuracy*100}, Training Time: {e_time}')
+    return accuracy, e_time
 
 def main():
-    accuracies = []
-    epochs = 100
-    for i in range(10):
-        accuracy = model_driver(percent = 10*(i+1), epochs = epochs)
-        accuracies.append(accuracy)
-    plt.bar([10*(i+1) for i in range(10)], accuracies)
-    plt.ylabel('Accuracy')
+    # Create the txt files from the excutable
+    filecreator()
+
+    accuracies = torch.zeros(10, 10)
+    times = torch.zeros(10, 10)
+    epochs = 20
+    for j in range(10):
+        for i in range(10):
+            accuracy, time = model_driver(percent = 10*(i+1), epochs = epochs)
+            accuracies[i][j] = accuracy
+            times[i][j] = time
+    
+    accuracies_std = torch.std(accuracies, dim=1)
+    times_std = torch.std(times, dim=1)
+    accuracies = torch.mean(accuracies, dim=1)
+    times = torch.mean(times, dim=1)
+
+    print(f'Mean Accuracies: {accuracies}, Accuracy STD: {accuracies_std}')
+    print(f'Mean Times: {times}, Time STD: {times_std}')
+
+    plt.plot([10*(i+1) for i in range(10)], accuracies)
+    plt.ylabel('Mean Accuracy')
     plt.xlabel('Percentage of Training Data Used')
-    plt.title(f'Model Accuracy by Training Data Access Percentage: {epochs} Epochs')
-    plt.savefig(f'Model Accuracy by Training Data Access Percentage: {epochs} Epochs')
+    plt.title(f'Digit Model Mean Accuracy by Training Data Access Percentage: {epochs} Epochs')
+    plt.savefig(f'Digit Model Mean Accuracy by Training Data Access Percentage: {epochs} Epochs')
+
+    plt.clf()
+
+    plt.plot([10*(i+1) for i in range(10)], times)
+    plt.ylabel('Mean Time')
+    plt.xlabel('Percentage of Training Data Used')
+    plt.title(f'Digit Model Mean Time by Training Data Access Percentage: {epochs} Epochs')
+    plt.savefig(f'Digit Model Mean Time by Training Data Access Percentage: {epochs} Epochs')
 
 main()
