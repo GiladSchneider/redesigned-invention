@@ -76,8 +76,10 @@ def bayes_trainer(percent, height,width, percentage):
     #generating features
 
     regions = [0.0 for _ in range(height*width)]
-    probabilities = [0.0 for _ in range(height*width)] #stores the probabilities of face given region
-    probabilities2 = [0.0 for _ in range(height*width)] #stores the probabilities of face given region
+    probabilities = [0.0 for _ in range(height*width)] #stores the probabilities of face given region true
+    probabilities2 = [0.0 for _ in range(height*width)] #stores the probabilities of face given region false
+    probabilitiesbad = [0.0 for _ in range(height*width)] #stores the probabilities of not face given region true
+    probabilitiesbad2 = [0.0 for _ in range(height*width)] #stores the probabilities of face given region false
     
     # go through each image and calculate symbol  in each 
     linecounter =0
@@ -99,7 +101,7 @@ def bayes_trainer(percent, height,width, percentage):
                     regions[l*width+c*width//60]+=1         #keep track of how many of these are in each region
 
         label = train_labels[imageindex]                 
-        regions[:] = [(x*height*width) /4200 for x in regions]      
+        regions[:] = [(x*height*width) /4200 for x in regions]      #look at this
         
         if(label == '1'):  #if face check the regions and update the probabilities
             faceCount = faceCount +1
@@ -109,26 +111,34 @@ def bayes_trainer(percent, height,width, percentage):
                 elif region <percentage:                                       # state given false and face = true
                     probabilities2[probindex] = probabilities2[probindex] +1    # state given false and face = true
                 probindex =  probindex+1
+        probindex = 0
+
+        if(label == '0'):  #if not face check the regions and update the probabilities
+            notfaceCount = notfaceCount +1
+            for region in regions:
+                if region >= percentage: #if >percentage elemeents in the region are + or #
+                    probabilitiesbad[probindex] = probabilitiesbad[probindex] +1  # state given true and face =  false, increment by 1
+                elif region <percentage:                                       # state given false and face = true
+                    probabilitiesbad2[probindex] = probabilitiesbad2[probindex] +1    # state given false and face = falsw
+                probindex =  probindex+1
+        
 
 
-    probabilities[:] = [(probability) /faceCount for probability in probabilities]  #divides the number of times face was true given x, by the number of faces tested
-    probabilities2[:] = [(probability) /faceCount for probability in probabilities]             #this gets the conditional probability
+    probabilities[:] = [(probability) /faceCount for probability in probabilities]  #divides the number of times face was true given x, by the number of faces trained
+    probabilities2[:] = [(probability) /faceCount for probability in probabilities2]             #this gets the conditional probability
+    probabilitiesbad[:] = [(probability) /notfaceCount for probability in probabilitiesbad]  #divides the number of times face was false given x, by the number of not faces trained
+    probabilitiesbad2[:] = [(probability) /notfaceCount for probability in probabilitiesbad2]             #this gets the conditional probability
     
     #getting rid of probabilities that are 0 because that ruins the algorith, just mean these features are irrelevant
 
-    for i in range(len(probabilities)):
-        if(probabilities[i] == 0.0):
-            probabilities[i] = 1
-        if(probabilities2[i] == 0.0):
-            probabilities2[i] = 1
 
 
-    accuracy = bayes_tester(probabilities, probabilities2, height,width, percentage)
+    accuracy = bayes_tester(probabilities, probabilities2,probabilitiesbad, probabilitiesbad2, height,width, percentage)
 
     return accuracy
 
 
-def bayes_tester(probabilities, probabilities2, height,width, percentage):
+def bayes_tester(probabilities, probabilities2,probabilitiesbad, probabilitiesbad2, height,width, percentage):
     # prepare the testing images and data to be input to the model
 
     test_labels_file = open('finalprojectdata/facedata/facelabeltest.txt')
@@ -158,7 +168,8 @@ def bayes_tester(probabilities, probabilities2, height,width, percentage):
     regions = [0.0 for _ in range(height*width)]
     linecounter =0
     imageindex = -1
-    probability = 0
+    probabilityface = 0
+    probabilitynotface = 0
     probindex = 0
     total =0
     bad = 0
@@ -170,7 +181,7 @@ def bayes_tester(probabilities, probabilities2, height,width, percentage):
         linecounter =0
         probindex = 0
         total = total + 1
-        probability = 0
+
         for row in currimage:   # go through every row 
             linecounter+=1
             l = ((linecounter)%70)*height//70
@@ -181,22 +192,33 @@ def bayes_tester(probabilities, probabilities2, height,width, percentage):
         regions[:] = [(x*height*width) /4200 for x in regions]      #get region values
         
         for region in regions:
-            if region > percentage:
-                if probability == 0:
-                    probability = probabilities[probindex]  # probability of face given x
-                probability = probability * probabilities[probindex] # state given true and face =  true, adjust probability
+            if region >= percentage:
+                if probabilityface == 0:
+                    probabilityface = probabilities[probindex]  # probability of face given x
+                if probabilitynotface == 0:
+                    probabilitynotface = probabilitiesbad[probindex]
+                probabilityface = probabilityface * probabilities[probindex] # state given true and face =  true, adjust probability
+                probabilitynotface = probabilitynotface*probabilitiesbad[probindex]
+
             else:
-                if probability == 0:
-                    probability = probabilities2[probindex] #probability of face given not x
-                probability = probability * probabilities2[probindex] # state given face and face =  true, adjust probability
+                if probabilityface == 0:
+                    probabilityface = probabilities2[probindex] #probability of face given not x
+                if probabilitynotface == 0:
+                    probabilitynotface = probabilitiesbad2[probindex]
+                probabilityface = probabilityface * probabilities2[probindex] # state given face and face =  true, adjust probability
+                probabilitynotface = probabilitynotface*probabilitiesbad2[probindex]
             probindex =  probindex+1
-        if(probability >= .5): # if more likely to be face
+
+       # print( str(imageindex) + ": faceprob = " + str(probabilityface) + " , notfacepro = " + str(probabilitynotface))
+        if(probabilityface / probabilitynotface) >= 1: # if more likely to be face
             guess = '1' # guess face
         else:
             guess = '0'
         if (guess != label ): #if wrong keep track of wrong
             bad = bad +1
-    print(bad)
+        probabilityface = 0
+        probabilitynotface = 0
+   # print(bad)
     return (1-(bad*1.0/total))*100.0
 
 
@@ -204,10 +226,10 @@ def bayes_tester(probabilities, probabilities2, height,width, percentage):
 def main():
 
     filecreator()
-    bayes_trainer(100,7,7, .15)
+
     for i in range(10):
         tic = time.time()
-        accuracy = bayes_trainer((10*(1+i)),6,6, .1) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
+        accuracy = bayes_trainer((10*(1+i)),7,6, .1) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
         toc = time.time()
         print("Percentage data: %s Accuracy: %s Execution time: %s"  %(10*(i+1), round(accuracy,2), round((toc-tic),2)))
     return
@@ -216,12 +238,5 @@ def main():
 
 
 
-def later():
-    for i in range(10):
-        tic = time.time()
-        accuracy = bayes_trainer((10*(1+i)),6,6, .1) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
-        toc = time.time()
-        print("Percentage data: %s Accuracy: %s Execution time: %s"  %(10*(i+1), round(accuracy,2), round((toc-tic),2)))
-    return
 
 main()
