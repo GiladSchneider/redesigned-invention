@@ -112,11 +112,17 @@ def bayes_trainer(percent, height,width, percentage):
         for region in regions:
             if region >= percentage: #if >percentage elemeents in the region are + or #
                 for i in range(10):
-                    probabilities[i][probindex] = probabilities[i][probindex] +1  # state given true and face =  true, increment by 1
+                    if i==int(label):
+                        probabilitiesbad[i][probindex] = probabilities[i][probindex] +1  # state given true and face =  true, increment by 1
+                    else:    
+                        probabilitiesbad[i][probindex] = probabilities[i][probindex] +1  # state given true and face =  true, increment by 1
                 
-            elif region <percentage:  
+            else:  
                 for i in range(10):
-                     probabilities2[i][probindex] = probabilities2[i][probindex] +1  # state given false and digit =  true, increment by 1
+                    if i==int(label):
+                        probabilities2[i][probindex] = probabilities2[i][probindex] +1  # state given false and digit =  true, increment by 1
+                    else:
+                        probabilitiesbad2[i][probindex] = probabilities2[i][probindex] +1  # state given false and digit =  true, increment by 1
             probindex =  probindex+1
 
     for i in range(10):
