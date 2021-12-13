@@ -536,11 +536,55 @@ def bayes_tester(probabilities, probabilities2,probabilitiesbad, probabilitiesba
 
 def main():
 
+    
     filecreator()
 
+
+    accuracies = torch.zeros(10, 10)
+    times = torch.zeros(10, 10)
+    for j in range(10):
+        for i in range(10):
+            tic = time.time()
+            accuracy = bayes_trainer((10*(1+i)),20,20, .60)
+            toc = time.time()
+            accuracies[i][j] = accuracy
+            time1 = toc-tic
+            times[i][j] = time1
+    
+    accuracies_std = torch.std(accuracies, dim=1)
+    times_std = torch.std(times, dim=1)
+    accuracies = torch.mean(accuracies, dim=1)
+    times = torch.mean(times, dim=1)
+
+    print(f'Mean Accuracies: {accuracies}, Accuracy STD: {accuracies_std}')
+    print(f'Mean Times: {times}, Time STD: {times_std}')
+
+    plt.plot([10*(i+1) for i in range(10)], accuracies)
+    plt.ylabel('Mean Accuracy')
+    plt.xlabel('Percentage of Training Data Used')
+    plt.title(f'Digit Model Mean Accuracy by Training Data Access Percentage: ')
+    plt.savefig(f'Digit Model Mean Accuracy by Training Data Access Percentage:')
+
+    plt.show()
+    time.sleep(5)
+    plt.clf()
+
+    plt.plot([10*(i+1) for i in range(10)], times)
+    plt.ylabel('Mean Time')
+    plt.xlabel('Percentage of Training Data Used')
+    plt.title(f'Digit Model Mean Time by Training Data Access Percentage:')
+    plt.savefig(f'Digit Model Mean Time by Training Data Access Percentage: ')
+    plt.show()
+    time.sleep(5)
+    
+    return
+
+
+def old():
+    filecreator()
     for i in range(10):
         tic = time.time()
-        accuracy = bayes_trainer((10*(1+i)),8,7, .2) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
+        accuracy = bayes_trainer((10*(1+i)),20,20, .60) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
         toc = time.time()
         print("Percentage data: %s Accuracy: %s Execution time: %s"  %(10*(i+1), round(accuracy,2), round((toc-tic),2)))
     return

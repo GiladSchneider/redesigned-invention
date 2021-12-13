@@ -1,3 +1,4 @@
+from os import error
 import torch
 from torch import nn, optim
 import matplotlib.pyplot as plt
@@ -76,10 +77,10 @@ def bayes_trainer(percent, height,width, percentage):
     #generating features
 
     regions = [0.0 for _ in range(height*width)]
-    probabilities = [0.0 for _ in range(height*width)] #stores the probabilities of face given region true
-    probabilities2 = [0.0 for _ in range(height*width)] #stores the probabilities of face given region false
-    probabilitiesbad = [0.0 for _ in range(height*width)] #stores the probabilities of not face given region true
-    probabilitiesbad2 = [0.0 for _ in range(height*width)] #stores the probabilities of face given region false
+    probabilities = [0.0001 for _ in range(height*width)] #stores the probabilities of face given region true
+    probabilities2 = [0.0001 for _ in range(height*width)] #stores the probabilities of face given region false
+    probabilitiesbad = [0.0001 for _ in range(height*width)] #stores the probabilities of not face given region true
+    probabilitiesbad2 = [0.0001 for _ in range(height*width)] #stores the probabilities of face given region false
     
     # go through each image and calculate symbol  in each 
     linecounter =0
@@ -210,7 +211,7 @@ def bayes_tester(probabilities, probabilities2,probabilitiesbad, probabilitiesba
             probindex =  probindex+1
 
        # print( str(imageindex) + ": faceprob = " + str(probabilityface) + " , notfacepro = " + str(probabilitynotface))
-        if(probabilityface / probabilitynotface) >= 1: # if more likely to be face
+        if probabilityface >= probabilitynotface: # if more likely to be face or probability of not face is 0
             guess = '1' # guess face
         else:
             guess = '0'
@@ -227,14 +228,55 @@ def main():
 
     filecreator()
 
-    for i in range(10):
-        tic = time.time()
-        accuracy = bayes_trainer((10*(1+i)),7,6, .1) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
-        toc = time.time()
-        print("Percentage data: %s Accuracy: %s Execution time: %s"  %(10*(i+1), round(accuracy,2), round((toc-tic),2)))
+
+    accuracies = torch.zeros(10, 10)
+    times = torch.zeros(10, 10)
+    for j in range(10):
+        for i in range(10):
+            tic = time.time()
+            accuracy = bayes_trainer((10*(1+i)),7,6, .1)
+            toc = time.time()
+            accuracies[i][j] = accuracy
+            time1 = toc-tic
+            times[i][j] = time1
+    
+    accuracies_std = torch.std(accuracies, dim=1)
+    times_std = torch.std(times, dim=1)
+    accuracies = torch.mean(accuracies, dim=1)
+    times = torch.mean(times, dim=1)
+
+    print(f'Mean Accuracies: {accuracies}, Accuracy STD: {accuracies_std}')
+    print(f'Mean Times: {times}, Time STD: {times_std}')
+
+    plt.plot([10*(i+1) for i in range(10)], accuracies, yerr = accuracies_std)
+    plt.ylabel('Mean Accuracy')
+    plt.xlabel('Percentage of Training Data Used')
+    plt.title(f'Face Model Mean Accuracy by Training Data Access Percentage: ')
+    plt.savefig(f'Face Model Mean Accuracy by Training Data Access Percentage:')
+
+    plt.show()
+    time.sleep(5)
+    plt.clf()
+
+    plt.plot([10*(i+1) for i in range(10)], times, yerr = times_std)
+    plt.ylabel('Mean Time')
+    plt.xlabel('Percentage of Training Data Used')
+    plt.title(f'Face Model Mean Time by Training Data Access Percentage:')
+    plt.savefig(f'Face Model Mean Time by Training Data Access Percentage: .png')
+
+    plt.show()
+    time.sleep(5)
     return
 
-
+def old():
+    filecreator()
+    for i in range(10):
+        
+     accuracy = bayes_trainer((10*(1+i)),7,6, .1) #use bayes_trainer(10,7,7, .1) = use 10% data, 7 by 7 regions, if 10% of characters are  #  return true state
+    toc = time.time()
+    time = toc-tic
+    print("Percentage data: %s Accuracy: %s Execution time: %s"  %(10*(i+1), round(accuracy,2), round((toc-tic),2)))
+    
 
 
 
